@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>Werewolf Gaming.co Clone Wars Roleplay</title>
+
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+
+        <style>
+            * {
+                margin: 0; padding: 0; box-sizing: border-box;
+            }
+
+            html, body {
+                width: 100%;
+                height: 100%;
+                background-color: black;
+                color: rgb( 252, 252, 252 );
+                font-family: Roboto;
+                overflow: hidden;
+            }
+
+            .slideshow img {
+                position: absolute;
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+                opacity: 0;
+                transition: opacity 2s ease-in-out;
+                z-index: 0;
+            }
+
+            .slideshow img.active {
+                opacity: 1;
+            }
+
+            .overlay {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba( 0, 0, 0, 0 );
+            }
+
+            .centered {
+                position: absolute;
+                width: 100%;
+                height: 100%;
+                top: 50%;
+                left: 50%;
+                transform: translate( -50%, -50% );
+                text-align: center;
+                z-index: 1;
+            }
+
+            h1 {
+                font-size: 2em;
+                margin-top: 4%;
+                margin-bottom: 0.5em;
+                font-size: 400%;
+            }
+            h1.smaller {
+                font-size: 1.6em;
+            }
+
+            p {
+                margin: 0.3em 0;
+            }
+
+            .progress-container {
+                width: 60%;
+                height: 4%;
+                background-color: rgb( 51, 51, 51 );
+                opacity: 0.8;
+                margin: 34% auto;
+                border-radius: 6px;
+                overflow: hidden;
+            }
+
+            .progress-bar {
+                height: 100%;
+                width: 0%;
+                background: linear-gradient( 90deg, #696969, #fcfcfc );
+                transition: width 0.5s ease;
+            }
+
+            .status-text {
+                margin-top: 10px;
+                font-size: 0.9em;
+                color: #aaa;
+            }
+        </style>
+    </head>
+
+    <body>
+        <div id="blackout" style="position:fixed;top:0;left:0;width:100vw;height:100vh;background:black;z-index:1000;opacity:1;transition:opacity 1s;"></div>
+
+        <div class="slideshow" id="slideshow" style="display: none; opacity:1;transition:opacity 1s;">
+            <img src="images/ct.jpg" class="active">
+            <img src="images/501.jpg">
+            <img src="images/arc.jpg">
+            <img src="images/212.jpg">
+            <img src="images/ds.jpg">
+            <img src="images/41.jpg">
+            <img src="images/rc.jpg">
+            <img src="images/gm.jpg">
+            <img src="images/du.jpg">
+            <img src="images/wp.jpg">
+        </div>
+        <img id="map-override-img" style="display:none; position:absolute; width:100%; height:100%; object-fit:cover; z-index:0; opacity:0; transition:opacity 1s;" />
+
+        <div class="overlay"></div>
+
+        <div class="centered" id="centered-text" style="opacity:0; transition:opacity 1s;">
+            <h1>Werewolf Gaming.co Clone Wars Roleplay</h1>
+            <p><span id="map-name">Map: -</span></p>
+            <p class="status-text" id="status">Retrieving server info...</p>
+
+            <div class="progress-container" id="progress-container">
+                <div class="progress-bar" id="progress-bar"></div>
+            </div>
+        </div>
+
+        <script>
+            const slides = document.querySelectorAll( ".slideshow img" );
+            let current = 0;
+            let slideshowInterval = null;
+
+            function startSlideshow() {
+                slides.forEach( ( img, idx ) => img.classList.toggle( "active", idx === 0 ) );
+                current = 0;
+                slideshowInterval = setInterval( () => {
+                    slides[current].classList.remove( "active" );
+                    current = ( current + 1 ) % slides.length;
+                    slides[current].classList.add( "active" );
+                }, 5000 );
+            }
+
+            const MapOverrides = {
+                "rp_ord_mantell": { name: "Ord Mantell", img: "images/planets/kessel.png" },
+                "event_christophsis_tgc": { name: "Christophsis", img: "images/planets/fondor.png" },
+                "rp_coruscantbelow": { name: "Coruscant", img: "images/planets/fondor.png" },
+                "gm_cruisercanyon": { name: "Moraband", img: "images/planets/ryloth.png" },
+                "rp_denon": { name: "Nar Shaddaa", img: "images/planets/fondor.png" },
+                "geonosiz_wg": { name: "Geonosis", img: "images/planets/geonosis.png" },
+                "rp_kashyyyk_jungle_b2": { name: "Kashyyyk", img: "images/planets/kashyyyk.png" },
+                "rp_mos_mesric_v2_1": { name: "Tatooine", img: "images/planets/tatooine.png" },
+                "rp_jabimev_alvara": { name: "Jabiim", img: "images/planets/ryloth.png" },
+                "mygeeto": { name: "Mygeeto", img: "images/planets/crait.png" },
+                "rhen_var_wg": { name: "Rhen Var", img: "images/planets/hoth.png" },
+                "rp_snow_facility": { name: "Agamar", img: "images/planets/hoth.png" },
+                "rp_tatooniehideout_werwolf": { name: "Tatooine", img: "images/planets/tatooine.png" },
+                "rp_werewolf_umbara": { name: "Umbara", img: "images/planets/kamino.png" },
+                "rp_vanqor_sbs": { name: "Vanqor", img: "images/planets/bespin.png" },
+                "gm_kashyyyk_slavercamp": { name: "Kashyyyk", img: "images/planets/kashyyyk.png" },
+                "rp_utapau_un": { name: "Utapau", img: "images/planets/felucia.png" },
+                "rp_naboo_city_v2_3_night": { name: "Naboo", img: "images/planets/naboo.png" },
+                "rp_vindico_mines": { name: "Kessel", img: "images/planets/kessel.png" },
+                "rp_werewolf_ryloth": { name: "Ryloth", img: "images/planets/ryloth.png" },
+                "rp_nevarro": { name: "Nevarro", img: "images/planets/dqar.png" }
+            };
+
+            function progress( percent ) {
+                document.getElementById( "progress-bar" ).style.width = percent + "%";
+            }
+
+            function fadeIn( el ) {
+                el.style.display = "block";
+                setTimeout( () => { el.style.opacity = 1; }, 10 );
+            }
+
+            function fadeOut( el, cb ) {
+                el.style.opacity = 0;
+                setTimeout( () => {
+                    el.style.display = "none";
+                    if ( cb ) cb();
+                }, 1000 );
+            }
+
+            function GameDetails( _, _, mapname, _, _, _, _, _ ) {
+                progress( 1 );
+
+                const override = MapOverrides[mapname];
+
+                const blackout = document.getElementById( "blackout" );
+                const centered = document.getElementById( "centered-text" );
+                const map = document.getElementById( "map-name" );
+
+                fadeOut( blackout, () => {
+
+                    if ( override ) {
+                        const overrideImg = document.getElementById( "map-override-img" );
+                        overrideImg.src = override.img;
+                        overrideImg.style.display = "block";
+
+                        centered.style.width = "30%";
+                        centered.style.top = "50%";
+                        centered.style.left = "2%";
+                        centered.style.textAlign = "left";
+                        centered.style.transform = "translate(-0%, -25%)";
+
+                        const container = document.getElementById( "progress-container" );
+                        container.style.margin = "54% 0%";
+
+                        const h1 = centered.querySelector( "h1" );
+                        h1.classList.add( "smaller" );
+        
+                        map.textContent = override.name;
+                        map.style.fontSize = "3em"
+
+                        fadeIn( centered );
+                        fadeIn( overrideImg );
+                    } else {
+                        const slideshow = document.getElementById( "slideshow" );
+
+                        slideshow.style.display = "block";
+
+                        map.textContent = "Map: " + mapname;
+
+                        startSlideshow();
+
+                        fadeIn( centered );
+                        fadeIn( slideshow );
+                    }
+
+                } );
+            }
+
+            let workshopLoaded = 0;
+            const TotalWorkshop = 21;
+            let luaLoaded = 0;
+            const TotalLua = 2150;
+
+            function SetStatusChanged( status ) {
+                document.getElementById( "status" ).textContent = status;
+
+                if ( status == "Mounting Addons" ) {
+                    progress( 70 );
+                } else if ( status == "Workshop Complete" ) {
+                    progress( 71.6 );
+                } else if ( status == "Sending client info..." ) {
+                    progress( 73.3 );
+                } else if ( status == "Client info sent!" ) {
+                    progress( 75 );
+                } else if ( status == "Received all Lua files we needed!" ) {
+                    progress( 94 );
+                } else if ( status == "Starting Lua..." ) {
+                    progress( 95 );
+                } else if ( status == "Lua Started!" ) {
+                    progress( 97.5 );
+                } else if (status == "Fully Connected!") {
+                    progress( 100 );
+                } else if ( status.includes( " - Loading" ) ) {
+                    workshopLoaded++;
+
+                    const start = 1;
+                    const end = 70;
+                    const addonProgress = start + ( ( end - start ) * ( workshopLoaded / TotalWorkshop ) );
+
+                    progress( addonProgress );
+                } else if ( status.endsWith( " Lua files" ) ) {
+                    luaLoaded++;
+
+                    const start = 75;
+                    const end = 94;
+                    const luaProgress = start + ( ( end - start ) * ( luaLoaded / TotalLua ) );
+
+                    progress( luaProgress );
+                }
+            }
+        </script>
+    </body>
+</html>
